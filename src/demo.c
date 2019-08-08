@@ -31,12 +31,17 @@ static int demo_frame = 3;
 static int demo_index = 0;
 static float **predictions;
 static float *avg;
-static int demo_done = 0;
-static int demo_total = 0;
+static int demo_done = 0;         //处理视频结束标志位
+static int demo_total = 0;        //网络规模大小
 double demo_time;
 
 detection *get_network_boxes(network *net, int w, int h, float thresh, float hier, int *map, int relative, int *num);
 
+/*************************************************
+Function: int size_network(network *net)
+Description: 计算网络大小
+Return: 网络规模大小
+*************************************************/
 int size_network(network *net)
 {
     int i;
@@ -44,7 +49,7 @@ int size_network(network *net)
     for(i = 0; i < net->n; ++i){
         layer l = net->layers[i];
         if(l.type == YOLO || l.type == REGION || l.type == DETECTION){
-            count += l.outputs;
+            count += l.outputs;   //对每层的输出个数进行累加 @wanghzhiping
         }
     }
     return count;
@@ -84,18 +89,18 @@ detection *avg_predictions(network *net, int *nboxes)
 
 void *detect_in_thread(void *ptr)
 {
-    running = 1;
+    running = 1;                                          //检测线程运行标识
     float nms = .4;
 
-    layer l = net->layers[net->n-1];
-    float *X = buff_letter[(buff_index+2)%3].data;
-    network_predict(net, X);
+    layer l = net->layers[net->n-1];                      // 取最后一层参数???
+    float *X = buff_letter[(buff_index+2)%3].data;        // 取letterbox中的数据
+    network_predict(net, X);                              // 推理
 
     /*
        if(l.type == DETECTION){
        get_detection_boxes(l, 1, 1, demo_thresh, probs, boxes, 0);
        } else */
-    remember_network(net);
+    remember_network(net);                                // 记录net.output
     detection *dets = 0;
     int nboxes = 0;
     dets = avg_predictions(net, &nboxes);
@@ -139,9 +144,9 @@ void *detect_in_thread(void *ptr)
 
 void *fetch_in_thread(void *ptr)
 {
-    free_image(buff[buff_index]);
-    buff[buff_index] = get_image_from_stream(cap);
-    if(buff[buff_index].data == 0) {
+    free_image(buff[buff_index]);                     //安全操作，清空buff
+    buff[buff_index] = get_image_from_stream(cap);    //读取一个图像过来
+    if(buff[buff_index].data == 0) {                  //判断是否读取完毕
         demo_done = 1;
         return 0;
     }
@@ -194,22 +199,22 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     demo_thresh = thresh;
     demo_hier = hier;
     printf("Demo\n");
-    net = load_network(cfgfile, weightfile, 0);
-    set_batch_network(net, 1);
-    pthread_t detect_thread;
-    pthread_t fetch_thread;
+    net = load_network(cfgfile, weightfile, 0); // 装载网络文件和权重文件
+    set_batch_network(net, 1);                  // 设置batch size =1
+    pthread_t detect_thread;                    // 创建检测线程
+    pthread_t fetch_thread;                     // 创建fetch线程  TODO//
 
     srand(2222222);
 
     int i;
-    demo_total = size_network(net);
-    predictions = calloc(demo_frame, sizeof(float*));
+    demo_total = size_network(net);                         // 计算网络规模大小
+    predictions = calloc(demo_frame, sizeof(float*));       // 分配了三个浮点数指针
     for (i = 0; i < demo_frame; ++i){
-        predictions[i] = calloc(demo_total, sizeof(float));
+        predictions[i] = calloc(demo_total, sizeof(float)); // 分配了三个大小为demo_total的预测区域
     }
-    avg = calloc(demo_total, sizeof(float));
+    avg = calloc(demo_total, sizeof(float));                // 另外分配一个大小为demo_total的均值区域
 
-    if(filename){
+    if(filename){                                           //读取视频文件/或者视频流
         printf("video file: %s\n", filename);
         cap = open_video_stream(filename, 0, 0, 0, 0);
     }else{
@@ -218,16 +223,16 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
     if(!cap) error("Couldn't connect to webcam.\n");
 
-    buff[0] = get_image_from_stream(cap);
-    buff[1] = copy_image(buff[0]);
-    buff[2] = copy_image(buff[0]);
-    buff_letter[0] = letterbox_image(buff[0], net->w, net->h);
+    buff[0] = get_image_from_stream(cap);                         //取第一个图片
+    buff[1] = copy_image(buff[0]);                                //复制  
+    buff[2] = copy_image(buff[0]);                                //复制
+    buff_letter[0] = letterbox_image(buff[0], net->w, net->h);    //按照参数进行图像缩放
     buff_letter[1] = letterbox_image(buff[0], net->w, net->h);
     buff_letter[2] = letterbox_image(buff[0], net->w, net->h);
 
     int count = 0;
     if(!prefix){
-        make_window("Demo", 1352, 1013, fullscreen);
+        make_window("Demo", 1352, 1013, fullscreen);              //创建窗口
     }
 
     demo_time = what_time_is_it_now();

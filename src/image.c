@@ -809,10 +809,14 @@ void letterbox_image_into(image im, int w, int h, image boxed)
     free_image(resized);
 }
 
+//将原图进行一定比例的缩放,返回的图片尺寸为(w,h)
 image letterbox_image(image im, int w, int h)
 {
     int new_w = im.w;
     int new_h = im.h;
+
+
+    //在保证图像宽高比不变的情况下,计算放缩后的宽高
     if (((float)w/im.w) < ((float)h/im.h)) {
         new_w = w;
         new_h = (im.h * w)/im.w;
@@ -820,9 +824,11 @@ image letterbox_image(image im, int w, int h)
         new_h = h;
         new_w = (im.w * h)/im.h;
     }
+
+    
     image resized = resize_image(im, new_w, new_h);
     image boxed = make_image(w, h, im.c);
-    fill_image(boxed, .5);
+    fill_image(boxed, .5);//填充,why 0.5?相当于127,灰度
     //int i;
     //for(i = 0; i < boxed.w*boxed.h*boxed.c; ++i) boxed.data[i] = 0;
     embed_image(resized, boxed, (w-new_w)/2, (h-new_h)/2); 

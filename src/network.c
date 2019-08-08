@@ -50,6 +50,17 @@ load_args get_base_args(network *net)
     return args;
 }
 
+/*************************************************
+Function: *load_network
+Description: 装载网络模型配置和权重
+Input: 
+    char *cfg    : 网络配置参数文件
+    char *weights: 网络权重文件
+    int clear    : 标志位
+Output: // 对输出参数的说明。
+Return: // 函数返回值的说明
+Others: // 其它说明
+*************************************************/
 network *load_network(char *cfg, char *weights, int clear)
 {
     network *net = parse_network_cfg(cfg);
@@ -1088,6 +1099,18 @@ void sync_nets(network **nets, int n, int interval)
     free(threads);
 }
 
+/*************************************************
+Function: train_networks
+Description: 装载网络模型配置和权重
+Input: 
+    network **nets: 网络架构
+    int n :
+    data d: 训练数据
+    int interval:
+Output: // 对输出参数的说明。
+Return: // 函数返回值的说明
+Others: // 其它说明
+*************************************************/
 float train_networks(network **nets, int n, data d, int interval)
 {
     int i;
